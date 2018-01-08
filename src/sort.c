@@ -345,6 +345,9 @@ static size_t temp_dir_alloc;
 /* Flag to reverse the order of all comparisons. */
 static bool reverse;
 
+
+static bool check_header = false;
+
 /* Flag for stable sort.  This turns off the last ditch bytewise
    comparison of lines, and instead leaves lines in the same order
    they were read if all keys compare equal.  */
@@ -552,7 +555,8 @@ enum
   NMERGE_OPTION,
   RANDOM_SOURCE_OPTION,
   SORT_OPTION,
-  PARALLEL_OPTION
+  PARALLEL_OPTION,
+  HAS_HEADER
 };
 
 static char const short_options[] = "-bcCdfghik:mMno:rRsS:t:T:uVy:z";
@@ -586,6 +590,7 @@ static struct option const long_options[] =
   {"temporary-directory", required_argument, NULL, 'T'},
   {"unique", no_argument, NULL, 'u'},
   {"zero-terminated", no_argument, NULL, 'z'},
+  {"header", no_argument , NULL, HAS_HEADER}
   {"parallel", required_argument, NULL, PARALLEL_OPTION},
   {GETOPT_HELP_OPTION_DECL},
   {GETOPT_VERSION_OPTION_DECL},
@@ -3917,10 +3922,15 @@ sort (char *const *files, size_t nfiles, char const *output_file,
     {
       char const *temp_output;
       char const *file = *files;
+      char first_line[1024];
       FILE *fp = xfopen (file, "r");
       FILE *tfp;
 
       size_t bytes_per_line;
+      if (check_header) {
+          fgets(first_line, 1024, fp);
+          fprintf(fp, "%s", first_line);
+	  }
       if (nthreads > 1)
         {
           /* Get log P. */
@@ -3941,7 +3951,12 @@ sort (char *const *files, size_t nfiles, char const *output_file,
                  sort_buffer_size (&fp, 1, files, nfiles, bytes_per_line));
       buf.eof = false;
       files++;
-      nfiles--;
+      if (check_header == true) {
+          nfiles = 0;
+      }
+      else {
+          nfiles--;
+      }
 
       while (fillbuf (&buf, fp, file))
         {
@@ -4435,6 +4450,9 @@ main (int argc, char **argv)
 
         case FILES0_FROM_OPTION:
           files_from = optarg;
+          break;
+        case HAS_HEADER:
+          check_header = true;
           break;
 
         case 'k':
