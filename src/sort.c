@@ -590,7 +590,7 @@ static struct option const long_options[] =
   {"temporary-directory", required_argument, NULL, 'T'},
   {"unique", no_argument, NULL, 'u'},
   {"zero-terminated", no_argument, NULL, 'z'},
-  {"header", no_argument , NULL, HAS_HEADER}
+  {"header", no_argument , NULL, HAS_HEADER},
   {"parallel", required_argument, NULL, PARALLEL_OPTION},
   {GETOPT_HELP_OPTION_DECL},
   {GETOPT_VERSION_OPTION_DECL},
@@ -3925,12 +3925,13 @@ sort (char *const *files, size_t nfiles, char const *output_file,
       char first_line[1024];
       FILE *fp = xfopen (file, "r");
       FILE *tfp;
+      char* tmp_fgets;
 
       size_t bytes_per_line;
       if (check_header) {
-          fgets(first_line, 1024, fp);
-          fprintf(fp, "%s", first_line);
-	  }
+          tmp_fgets = fgets(first_line, 1024, fp);
+          tmp_fgets ++;
+      }
       if (nthreads > 1)
         {
           /* Get log P. */
@@ -3979,6 +3980,9 @@ sort (char *const *files, size_t nfiles, char const *output_file,
             {
               xfclose (fp, file);
               tfp = xfopen (output_file, "w");
+              if (check_header) {
+                  fprintf(tfp, "%s", first_line);
+              }
               temp_output = output_file;
               output_file_created = true;
             }
